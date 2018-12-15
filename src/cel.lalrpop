@@ -1,0 +1,31 @@
+use std::str::FromStr;
+use crate::model;
+
+grammar;
+
+pub Expr: model::Expression = {
+    <a:Add> => a,
+};
+
+pub Add: model::Expression = {
+    <a:Add> "+" <m:Mul> => model::Expression::Add(vec![a, m]),
+    <m:Mul> => m,
+};
+
+pub Mul: model::Expression = {
+    <m:Mul> "*" <u:Unary> => model::Expression::Mul(vec![m, u]),
+    <u:Unary> => u,
+};
+
+pub Unary: model::Expression = {
+    "(" <e:Expr> ")" => e,
+    <l:Lit> => model::Expression::Lit(l),
+};
+
+Lit: model::Literal = {
+    <i:Int> => model::Literal::I64(i),
+};
+
+Int: i64 = {
+    r"[0-9]+" => i64::from_str(<>).unwrap(),
+};

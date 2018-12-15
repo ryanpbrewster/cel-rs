@@ -1,4 +1,5 @@
 #[macro_use]
 extern crate lalrpop_util;
 
-mod parsers;
+pub mod model;
+pub mod parsers;

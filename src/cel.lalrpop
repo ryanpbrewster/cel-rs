@@ -23,6 +23,14 @@ pub Unary: model::Expression = {
 };
 
 Lit: model::Literal = {
+    "[" <es:(<Expr> ",")*> <e:Expr?> "]" => match e {
+        None => model::Literal::List(es),
+        Some(e) => {
+            let mut es = es;
+            es.push(e);
+            model::Literal::List(es)
+        }
+    },
     <i:Int> => model::Literal::I64(i),
 };
 

@@ -22,7 +22,7 @@ mod test {
     }
 
     #[test]
-    fn smoke_cel() {
+    fn cel_smoke() {
         let input = "22 * (4 + 15)";
         let res = assert_eq!(
             super::cel::ExprParser::new().parse(input),
@@ -33,6 +33,19 @@ mod test {
                     Expression::Lit(Literal::I64(15)),
                 ])
             ]))
+        );
+    }
+
+    #[test]
+    fn cel_list() {
+        let input = "[0, 1, 2]";
+        let res = assert_eq!(
+            super::cel::ExprParser::new().parse(input),
+            Ok(Expression::Lit(Literal::List(vec![
+                Expression::Lit(Literal::I64(0)),
+                Expression::Lit(Literal::I64(1)),
+                Expression::Lit(Literal::I64(2)),
+            ])))
         );
     }
 }

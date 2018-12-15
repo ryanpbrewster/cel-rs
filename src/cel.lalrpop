@@ -23,17 +23,21 @@ pub Unary: model::Expression = {
 };
 
 Lit: model::Literal = {
-    "[" <es:(<Expr> ",")*> <e:Expr?> "]" => match e {
-        None => model::Literal::List(es),
-        Some(e) => {
-            let mut es = es;
-            es.push(e);
-            model::Literal::List(es)
-        }
-    },
+    "[" <es:Comma<Expr>> "]" => model::Literal::List(es),
     <i:Int> => model::Literal::I64(i),
 };
 
 Int: i64 = {
     r"[0-9]+" => i64::from_str(<>).unwrap(),
+};
+
+Comma<T>: Vec<T> = {
+    <vs:(<T> ",")*> <v:T?> => match v {
+        None => vs,
+        Some(v) => {
+            let mut vs = vs;
+            vs.push(v);
+            vs
+        }
+    }
 };

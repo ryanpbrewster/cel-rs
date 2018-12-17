@@ -1,7 +1,5 @@
 use crate::model::Expression;
 
-lalrpop_mod!(pub calculator1); // synthesized by LALRPOP
-lalrpop_mod!(pub calculator3); // synthesized by LALRPOP
 lalrpop_mod!(pub cel); // synthesized by LALRPOP
 
 pub fn parse(input: &str) -> Result<Expression, String> {
@@ -14,21 +12,6 @@ pub fn parse(input: &str) -> Result<Expression, String> {
 mod test {
     use super::*;
     use crate::model::Literal;
-
-    #[test]
-    fn smoke1() {
-        let input = "22";
-        let res = assert_eq!(calculator1::TermParser::new().parse(input), Ok(22));
-    }
-
-    #[test]
-    fn smoke3() {
-        let input = "22 * (4 + 15)";
-        let res = assert_eq!(
-            calculator3::ExprParser::new().parse(input),
-            Ok(22 * (4 + 15))
-        );
-    }
 
     #[test]
     fn cel_smoke() {

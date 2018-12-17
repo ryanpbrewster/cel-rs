@@ -24,7 +24,12 @@ pub Unary: model::Expression = {
 
 Lit: model::Literal = {
     "[" <es:Comma<Expr>> "]" => model::Literal::List(es),
+    <s:QuotedString> => model::Literal::String(s),
     <i:Int> => model::Literal::I64(i),
+};
+
+QuotedString: String = {
+    <raw: r#""[^"]*""#> => String::from(&raw[1..raw.len() - 1])
 };
 
 Int: i64 = {

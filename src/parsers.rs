@@ -40,4 +40,28 @@ mod test {
             ])))
         );
     }
+
+    #[test]
+    fn cel_string() {
+        let input = r#""asdf""#;
+        let res = assert_eq!(
+            cel::ExprParser::new().parse(input),
+            Ok(Expression::Lit(Literal::String(String::from("asdf"))))
+        );
+    }
+
+    #[test]
+    fn cel_escaped_quote_string() {
+        let input = r#""as\"df""#;
+        let res = assert_eq!(
+            cel::ExprParser::new().parse(input),
+            Ok(Expression::Lit(Literal::String(String::from("as\"df"))))
+        );
+    }
+
+    #[test]
+    fn cel_bad_string() {
+        let input = r#""\0""#;
+        assert_eq!(parse(input), Err(String::from("bad literal")),);
+    }
 }

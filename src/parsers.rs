@@ -1,7 +1,7 @@
 use crate::model::{Expression, Literal};
 
-use pest::{Parser};
 use pest::iterators::Pair;
+use pest::Parser;
 use pest_derive::Parser;
 
 #[derive(Parser)]
@@ -9,8 +9,8 @@ use pest_derive::Parser;
 struct CelParser;
 
 pub fn parse(input: &str) -> Result<Expression, String> {
-    let mut parsed = CelParser::parse(Rule::Expression, input)
-        .map_err(|err| format!("{:?}", err))?;
+    let mut parsed =
+        CelParser::parse(Rule::Expression, input).map_err(|err| format!("{:?}", err))?;
     Ok(extract_expression(parsed.next().unwrap()))
 }
 
@@ -78,10 +78,23 @@ fn extract_literal(pair: Pair<Rule>) -> Literal {
     assert_eq!(pair.as_rule(), Rule::Literal);
     let pair = pair.into_inner().next().unwrap();
     match pair.as_rule() {
-        Rule::StringLiteral => Literal::String(String::from("")),
-        Rule::IntLiteral => Literal::I64(0),
+        Rule::StringLiteral => {
+            let s = pair.as_str();
+            Literal::String(String::from(&s[1..s.len() - 1]))
+        }
+        Rule::IntLiteral => Literal::I64(pair.as_str().parse().unwrap()),
+        Rule::ListLiteral => extract_list(pair),
         _ => unreachable!(),
     }
+}
+
+fn extract_list(pair: Pair<Rule>) -> Literal {
+    assert_eq!(pair.as_rule(), Rule::ListLiteral);
+    let mut vs = Vec::new();
+    for p in pair.into_inner() {
+        vs.push(extract_addition(p));
+    }
+    Literal::List(vs)
 }
 
 #[cfg(test)]

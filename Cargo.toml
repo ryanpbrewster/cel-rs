@@ -5,9 +5,5 @@ authors = ["Ryan P. Brewster <RyanPBrewster@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-lalrpop-util = "0.16.2"
-regex = "0.2.1"
-
-[build-dependencies]
-lalrpop = "0.16.2"
-
+pest = "2.0"
+pest_derive = "2.0"

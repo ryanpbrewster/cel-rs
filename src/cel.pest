@@ -1,0 +1,14 @@
+Expression = { SOI ~ Addition ~ EOI }
+Addition = { Multiplication ~ (AddOp ~ Addition)? }
+AddOp = { "+" | "-" }
+Multiplication = { Unary ~ (MulOp ~ Multiplication)? }
+MulOp = { "*" | "/" }
+Unary = { Literal | LPAREN ~ Addition ~ RPAREN | UnaryOp ~ Unary }
+LPAREN = _{ "(" }
+RPAREN = _{ ")" }
+UnaryOp = { "-" }
+Literal = { StringLiteral | IntLiteral }
+StringLiteral = { "\"" ~ CharLiteral* ~ "\"" }
+CharLiteral = { ASCII_ALPHANUMERIC }
+IntLiteral = { ASCII_DIGIT+ }
+WHITESPACE = _{ " " }

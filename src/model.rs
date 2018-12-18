@@ -2,8 +2,12 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
-    Add(Vec<Expression>),
-    Mul(Vec<Expression>),
+    Add(Box<Expression>, Box<Expression>),
+    Sub(Box<Expression>, Box<Expression>),
+    Mul(Box<Expression>, Box<Expression>),
+    Div(Box<Expression>, Box<Expression>),
+    Mod(Box<Expression>, Box<Expression>),
+    Neg(Box<Expression>),
     Lit(Literal),
 }
 

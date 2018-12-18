@@ -78,14 +78,36 @@ fn extract_literal(pair: Pair<Rule>) -> Literal {
     assert_eq!(pair.as_rule(), Rule::Literal);
     let pair = pair.into_inner().next().unwrap();
     match pair.as_rule() {
-        Rule::StringLiteral => {
-            let s = pair.as_str();
-            Literal::String(String::from(&s[1..s.len() - 1]))
-        }
+        Rule::StringLiteral => Literal::String(extract_string(pair)),
         Rule::IntLiteral => Literal::I64(pair.as_str().parse().unwrap()),
         Rule::ListLiteral => extract_list(pair),
         _ => unreachable!(),
     }
+}
+
+fn extract_string(pair: Pair<Rule>) -> String {
+    assert_eq!(pair.as_rule(), Rule::StringLiteral);
+    let mut buf = String::new();
+    for p in pair.into_inner() {
+        match p.as_rule() {
+            Rule::CharLiteral => {
+                buf.push_str(p.as_str());
+            }
+            Rule::Escape => {
+                let s = &p.as_str()[1..];
+                match s {
+                    "t" => buf.push('\t'),
+                    "n" => buf.push('\n'),
+                    "\"" => buf.push('"'),
+                    _ => {
+                        buf.push(u8::from_str_radix(s, 8).unwrap() as char);
+                    }
+                }
+            }
+            _ => unreachable!(),
+        }
+    }
+    buf
 }
 
 fn extract_list(pair: Pair<Rule>) -> Literal {
@@ -104,6 +126,11 @@ mod test {
 
     fn assert_valid(input: &str) {
         parse(input).expect("failed to parse");
+    }
+
+    fn assert_invalid(input: &str) {
+        let parsed = parse(input);
+        assert!(parsed.is_err(), "{} was accepted as {:?}", input, parsed);
     }
 
     #[test]
@@ -129,13 +156,16 @@ mod test {
 
     #[test]
     fn cel_list() {
-        let input = "[0, 1, 2]";
+        let input = "[0, '1', 2 + '3']";
         let res = assert_eq!(
             parse(input),
             Ok(Expression::Lit(Literal::List(vec![
                 Expression::Lit(Literal::I64(0)),
-                Expression::Lit(Literal::I64(1)),
-                Expression::Lit(Literal::I64(2)),
+                Expression::Lit(Literal::String(String::from("1"))),
+                Expression::Add(
+                    Box::new(Expression::Lit(Literal::I64(2))),
+                    Box::new(Expression::Lit(Literal::String(String::from("3")))),
+                )
             ])))
         );
     }
@@ -159,8 +189,13 @@ mod test {
     }
 
     #[test]
-    fn cel_bad_string() {
-        let input = r#""\0""#;
-        assert_eq!(parse(input), Err(String::from("bad literal")),);
+    fn cel_string_octal_escapes() {
+        assert_valid(r#" "\0" "#);
+        assert_valid(r#" "\7" "#);
+        assert_valid(r#" "\07" "#);
+        assert_valid(r#" "\77" "#);
+        assert_valid(r#" "\377" "#);
+        assert_invalid(r#" "\8" "#);
+        assert_valid(r#" "\400" "#); // parsed as [\4, 0, 0]
     }
 }

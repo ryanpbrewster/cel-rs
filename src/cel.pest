@@ -15,4 +15,4 @@ Escape = @{ "\\" ~ ("\"" | "n" | "t" | Octal ) }
 Octal = { ASCII_OCT_DIGIT }
 IntLiteral = @{ ASCII_DIGIT+ }
 ListLiteral = { "[" ~ Addition ~ ("," ~ Addition)* ~ "]" }
-WHITESPACE = _{ " " }
+WHITESPACE = _{ " " | "\n" }

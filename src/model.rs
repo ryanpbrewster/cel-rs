@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, PartialEq)]
 pub enum Expression {
+    Eq(Box<Expression>, Box<Expression>),
     Add(Box<Expression>, Box<Expression>),
     Sub(Box<Expression>, Box<Expression>),
     Mul(Box<Expression>, Box<Expression>),

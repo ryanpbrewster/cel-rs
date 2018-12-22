@@ -16,7 +16,24 @@ pub fn parse(input: &str) -> Result<Expression, String> {
 
 fn extract_expression(pair: Pair<Rule>) -> Expression {
     assert_eq!(pair.as_rule(), Rule::Expression);
-    extract_addition(pair.into_inner().next().unwrap())
+    extract_relation(pair.into_inner().next().unwrap())
+}
+
+fn extract_relation(pair: Pair<Rule>) -> Expression {
+    assert_eq!(pair.as_rule(), Rule::Relation);
+    let mut pairs = pair.into_inner();
+    let a = extract_addition(pairs.next().unwrap());
+    match pairs.next() {
+        None => a,
+        Some(op) => {
+            assert_eq!(op.as_rule(), Rule::RelOp);
+            let b = extract_addition(pairs.next().unwrap());
+            match op.as_str() {
+                "==" => Expression::Eq(Box::new(a), Box::new(b)),
+                _ => unreachable!(),
+            }
+        }
+    }
 }
 
 fn extract_addition(pair: Pair<Rule>) -> Expression {

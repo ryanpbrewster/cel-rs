@@ -5,7 +5,14 @@ type EvalResult = Result<Literal, String>;
 pub fn evaluate(expr: Expression) -> EvalResult {
     match expr {
         Expression::Lit(literal) => Ok(literal),
-        Expression::Neg(e) => Ok(evaluate(*e)?),
+        Expression::Neg(e) => match evaluate(*e)? {
+            Literal::I64(x) => Ok(Literal::I64(-x)),
+            _ => Err(String::from("invalid types")),
+        },
+        Expression::Not(e) => match evaluate(*e)? {
+            Literal::Bool(x) => Ok(Literal::Bool(!x)),
+            _ => Err(String::from("invalid types")),
+        },
         Expression::Eq(a, b) => {
             let a = evaluate(*a)?;
             let b = evaluate(*b)?;
@@ -84,6 +91,18 @@ mod test {
             evaluate(parse(input).unwrap()),
             Ok(Literal::I64(1 + 2 + 3 + 4 + 5)),
         );
+    }
+
+    #[test]
+    fn unary_negative() {
+        let input = r#" -5 + 8 "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(3)),);
+    }
+
+    #[test]
+    fn unary_not() {
+        let input = r#" !(5 + 5 == 10) "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(false)),);
     }
 
     #[test]

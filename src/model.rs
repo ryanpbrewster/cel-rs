@@ -9,6 +9,7 @@ pub enum Expression {
     Div(Box<Expression>, Box<Expression>),
     Mod(Box<Expression>, Box<Expression>),
     Neg(Box<Expression>),
+    Not(Box<Expression>),
     Lit(Literal),
 }
 

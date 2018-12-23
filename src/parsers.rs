@@ -79,11 +79,12 @@ fn extract_unary(pair: Pair<Rule>) -> Expression {
     let a = pairs.next().unwrap();
     match a.as_rule() {
         Rule::Literal => Expression::Lit(extract_literal(a)),
-        Rule::Addition => extract_addition(a),
+        Rule::Relation => extract_relation(a),
         Rule::UnaryOp => {
             assert_eq!(a.as_rule(), Rule::UnaryOp);
             match a.as_str() {
                 "-" => Expression::Neg(Box::new(extract_unary(pairs.next().unwrap()))),
+                "!" => Expression::Not(Box::new(extract_unary(pairs.next().unwrap()))),
                 _ => unreachable!(),
             }
         }
@@ -98,6 +99,7 @@ fn extract_literal(pair: Pair<Rule>) -> Literal {
         Rule::StringLiteral => Literal::String(extract_string(pair)),
         Rule::IntLiteral => Literal::I64(pair.as_str().parse().unwrap()),
         Rule::ListLiteral => extract_list(pair),
+        Rule::BoolLiteral => Literal::Bool(pair.as_str().parse().unwrap()),
         _ => unreachable!(),
     }
 }
@@ -154,6 +156,7 @@ mod test {
     fn cel_valid() {
         assert_valid("22 * (4 + 15)");
         assert_valid("22 * -4");
+        assert_valid("!false");
     }
 
     #[test]

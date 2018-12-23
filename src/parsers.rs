@@ -1,4 +1,4 @@
-use crate::model::{Expression, Literal};
+use crate::model::{Expression, Literal, MethodName};
 
 use pest::iterators::Pair;
 use pest::Parser;
@@ -78,8 +78,7 @@ fn extract_unary(pair: Pair<Rule>) -> Expression {
     let mut pairs = pair.into_inner();
     let a = pairs.next().unwrap();
     match a.as_rule() {
-        Rule::Literal => Expression::Lit(extract_literal(a)),
-        Rule::Relation => extract_relation(a),
+        Rule::Member => extract_member(a),
         Rule::UnaryOp => {
             assert_eq!(a.as_rule(), Rule::UnaryOp);
             match a.as_str() {
@@ -90,6 +89,33 @@ fn extract_unary(pair: Pair<Rule>) -> Expression {
         }
         _ => unreachable!(),
     }
+}
+
+fn extract_member(pair: Pair<Rule>) -> Expression {
+    assert_eq!(pair.as_rule(), Rule::Member);
+    let mut pairs = pair.into_inner();
+    let a = pairs.next().unwrap();
+    let mut a = match a.as_rule() {
+        Rule::Literal => Expression::Lit(extract_literal(a)),
+        Rule::Relation => extract_relation(a),
+        _ => unreachable!(),
+    };
+    while let Some(id) = pairs.next() {
+        let name = extract_method_name(id);
+        let args = extract_args(pairs.next().unwrap());
+        a = Expression::Method(Box::new(a), name, args);
+    }
+    a
+}
+
+fn extract_method_name(pair: Pair<Rule>) -> MethodName {
+    assert_eq!(pair.as_rule(), Rule::Identifier);
+    pair.as_str().parse::<MethodName>().unwrap()
+}
+
+fn extract_args(pair: Pair<Rule>) -> Vec<Expression> {
+    assert_eq!(pair.as_rule(), Rule::Args);
+    pair.into_inner().map(|p| extract_relation(p)).collect()
 }
 
 fn extract_literal(pair: Pair<Rule>) -> Literal {
@@ -162,7 +188,7 @@ mod test {
     #[test]
     fn cel_smoke() {
         let input = "22 * (4 + 15)";
-        let res = assert_eq!(
+        assert_eq!(
             parse(input),
             Ok(Expression::Mul(
                 Box::new(Expression::Lit(Literal::I64(22))),
@@ -177,7 +203,7 @@ mod test {
     #[test]
     fn cel_list() {
         let input = "[0, '1', 2 + '3']";
-        let res = assert_eq!(
+        assert_eq!(
             parse(input),
             Ok(Expression::Lit(Literal::List(vec![
                 Expression::Lit(Literal::I64(0)),
@@ -193,7 +219,7 @@ mod test {
     #[test]
     fn cel_string() {
         let input = r#""asdf""#;
-        let res = assert_eq!(
+        assert_eq!(
             parse(input),
             Ok(Expression::Lit(Literal::String(String::from("asdf"))))
         );
@@ -202,7 +228,7 @@ mod test {
     #[test]
     fn cel_escaped_quote_string() {
         let input = r#""as\"df""#;
-        let res = assert_eq!(
+        assert_eq!(
             parse(input),
             Ok(Expression::Lit(Literal::String(String::from("as\"df"))))
         );
@@ -217,5 +243,13 @@ mod test {
         assert_valid(r#" "\377" "#);
         assert_invalid(r#" "\8" "#);
         assert_valid(r#" "\400" "#); // parsed as [\4, 0, 0]
+    }
+
+    #[test]
+    fn method_call() {
+        assert_valid(r#" [1, 2, 3].len() "#);
+        assert_valid(r#" 42.pow(42) "#);
+        assert_valid(r#" ([1] + [2]).len() "#);
+        assert_valid(r#" ([1] + [2]).len().pow(2) "#);
     }
 }

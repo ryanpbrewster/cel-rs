@@ -1,4 +1,4 @@
-use crate::model::{Expression, Literal};
+use crate::model::{Expression, Literal, MethodName};
 
 type EvalResult = Result<Literal, String>;
 
@@ -27,7 +27,6 @@ pub fn evaluate(expr: Expression) -> EvalResult {
             let b = evaluate(*b)?;
             match (a, b) {
                 (Literal::I64(a), Literal::I64(b)) => Ok(Literal::I64(a + b)),
-                (Literal::F64(a), Literal::F64(b)) => Ok(Literal::F64(a + b)),
                 (Literal::String(a), Literal::String(b)) => {
                     Ok(Literal::String(a.chars().chain(b.chars()).collect()))
                 }
@@ -39,7 +38,6 @@ pub fn evaluate(expr: Expression) -> EvalResult {
             let b = evaluate(*b)?;
             match (a, b) {
                 (Literal::I64(a), Literal::I64(b)) => Ok(Literal::I64(a - b)),
-                (Literal::F64(a), Literal::F64(b)) => Ok(Literal::F64(a - b)),
                 _ => Err(String::from("invalid types")),
             }
         }
@@ -48,7 +46,6 @@ pub fn evaluate(expr: Expression) -> EvalResult {
             let b = evaluate(*b)?;
             match (a, b) {
                 (Literal::I64(a), Literal::I64(b)) => Ok(Literal::I64(a * b)),
-                (Literal::F64(a), Literal::F64(b)) => Ok(Literal::F64(a * b)),
                 _ => Err(String::from("invalid types")),
             }
         }
@@ -63,7 +60,6 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                         Err(String::from("divide by zero"))
                     }
                 }
-                (Literal::F64(a), Literal::F64(b)) => Ok(Literal::F64(a / b)),
                 _ => Err(String::from("invalid types")),
             }
         }
@@ -73,6 +69,33 @@ pub fn evaluate(expr: Expression) -> EvalResult {
             match (a, b) {
                 (Literal::I64(a), Literal::I64(b)) => Ok(Literal::I64(a % b)),
                 _ => Err(String::from("invalid types")),
+            }
+        }
+        Expression::Method(e, name, args) => {
+            let e = evaluate(*e)?;
+            match e {
+                Literal::String(a) => match name {
+                    MethodName::Len => {
+                        if !args.is_empty() {
+                            return Err(String::from("too may arguments to .len()"));
+                        }
+                        Ok(Literal::I64(a.chars().count() as i64))
+                    }
+                    MethodName::Pow => Err(String::from("illegal type for .pow()")),
+                },
+                Literal::I64(a) => match name {
+                    MethodName::Len => Err(String::from("illegal type for .len()")),
+                    MethodName::Pow => {
+                        if args.len() != 1 {
+                            return Err(String::from("too may arguments to .pow()"));
+                        }
+                        match evaluate(args[0].clone())? {
+                            Literal::I64(b) => Ok(Literal::I64(i64::pow(a, b as u32))),
+                            _ => Err(String::from("illegal type for .pow()")),
+                        }
+                    }
+                },
+                other => Err(format!("illegal method call {:?}.{:?}", other, name)),
             }
         }
     }
@@ -109,6 +132,18 @@ mod test {
     fn string_addition() {
         let input = r#" "asdf" + "pqrs" + "tuvw" == "asdfpqrstuvw" "#;
         assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(true)),);
+    }
+
+    #[test]
+    fn string_len() {
+        let input = r#" "asdf".len() + "pqrs".len() "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(8)),);
+    }
+
+    #[test]
+    fn int_pow() {
+        let input = r#" 42.pow(2) "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(42 * 42)),);
     }
 
     #[test]

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
+use std::str::FromStr;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Eq(Box<Expression>, Box<Expression>),
     Add(Box<Expression>, Box<Expression>),
@@ -10,26 +10,33 @@ pub enum Expression {
     Mod(Box<Expression>, Box<Expression>),
     Neg(Box<Expression>),
     Not(Box<Expression>),
+    Method(Box<Expression>, MethodName, Vec<Expression>),
     Lit(Literal),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     I64(i64),
-    U64(u64),
-    F64(f64),
     Bool(bool),
     String(String),
     Bytes(Vec<u8>),
     List(Vec<Expression>),
-    Map(HashMap<MapKey, Expression>),
     Null,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub enum MapKey {
-    I64(i64),
-    U64(u64),
-    Bool(bool),
-    String(String),
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum MethodName {
+    Len,
+    Pow,
+}
+
+impl FromStr for MethodName {
+    type Err = String;
+    fn from_str(s: &str) -> Result<MethodName, String> {
+        match s {
+            "len" => Ok(MethodName::Len),
+            "pow" => Ok(MethodName::Pow),
+            _ => Err(format!("unknown method '{}'", s)),
+        }
+    }
 }

@@ -168,6 +168,7 @@ fn extract_list(pair: Pair<Rule>) -> Literal {
 mod test {
     use super::*;
     use crate::model::Literal;
+    use std::any::Any;
 
     fn assert_valid(input: &str) {
         parse(input).expect("failed to parse");
@@ -176,6 +177,13 @@ mod test {
     fn assert_invalid(input: &str) {
         let parsed = parse(input);
         assert!(parsed.is_err(), "{} was accepted as {:?}", input, parsed);
+    }
+
+    fn literal(x: &dyn Any) -> Expression {
+        if let Some(&s) = x.downcast_ref::<&str>() {
+            return Expression::Lit(Literal::String(String::from(s)));
+        }
+        unimplemented!("literal of type {:?}", x.get_type_id())
     }
 
     #[test]
@@ -235,11 +243,7 @@ mod test {
     }
 
     #[test]
-    fn cel_string_octal_escapes() {
-        assert_valid(r#" "\000" "#);
-        assert_valid(r#" "\007" "#);
-        assert_valid(r#" "\255" "#);
-        assert_valid(r#" "\377" "#);
+    fn invalid_octal_escapes() {
         assert_invalid(r#" "\0" "#);
         assert_invalid(r#" "\7" "#);
         assert_invalid(r#" "\07" "#);
@@ -247,6 +251,13 @@ mod test {
         assert_invalid(r#" "\8" "#);
         assert_invalid(r#" "\378" "#);
         assert_invalid(r#" "\400" "#);
+    }
+
+    #[test]
+    fn valid_octal_escapes() {
+        assert_eq!(parse(r#" "\000" "#).unwrap(), literal(&"\x00"));
+        assert_eq!(parse(r#" "\007" "#).unwrap(), literal(&"\x07"));
+        assert_eq!(parse(r#" "\377" "#).unwrap(), literal(&"\u{00FF}"));
     }
 
     #[test]

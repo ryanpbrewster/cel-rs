@@ -4,6 +4,8 @@ use pest::iterators::Pair;
 use pest::Parser;
 use pest_derive::Parser;
 
+use std::convert::TryFrom;
+
 #[derive(Parser)]
 #[grammar = "cel.pest"]
 struct CelParser;
@@ -140,13 +142,17 @@ fn extract_string(pair: Pair<Rule>) -> String {
             }
             Rule::Escape => {
                 let s = &p.as_str()[1..];
-                match s {
+                match &s[..1] {
                     "t" => buf.push('\t'),
                     "n" => buf.push('\n'),
                     "\"" => buf.push('"'),
-                    _ => {
+                    "x" | "u" => {
+                        buf.push(char::try_from(u32::from_str_radix(&s[1..], 16).unwrap()).unwrap());
+                    },
+                    "0" | "1" | "2" | "3" => {
                         buf.push(u8::from_str_radix(s, 8).unwrap() as char);
                     }
+                    _ => unreachable!("unexpected string literal {} in {}", &s[..=0], s)
                 }
             }
             _ => unreachable!(),
@@ -255,9 +261,23 @@ mod test {
 
     #[test]
     fn valid_octal_escapes() {
-        assert_eq!(parse(r#" "\000" "#).unwrap(), literal(&"\x00"));
-        assert_eq!(parse(r#" "\007" "#).unwrap(), literal(&"\x07"));
+        assert_eq!(parse(r#" "\000" "#).unwrap(), literal(&"\u{0000}"));
+        assert_eq!(parse(r#" "\007" "#).unwrap(), literal(&"\u{0007}"));
         assert_eq!(parse(r#" "\377" "#).unwrap(), literal(&"\u{00FF}"));
+    }
+
+    #[test]
+    fn valid_hex_escapes() {
+        assert_eq!(parse(r#" "\x00" "#).unwrap(), literal(&"\u{0000}"));
+        assert_eq!(parse(r#" "\xFF" "#).unwrap(), literal(&"\u{00FF}"));
+    }
+
+    #[test]
+    fn valid_unicode_escapes() {
+        assert_eq!(parse(r#" "\u0000" "#).unwrap(), literal(&"\u{0000}"));
+        assert_eq!(parse(r#" "\u00FF" "#).unwrap(), literal(&"\u{00FF}"));
+        assert_eq!(parse(r#" "\uFF00" "#).unwrap(), literal(&"\u{FF00}"));
+        assert_eq!(parse(r#" "\uFFFF" "#).unwrap(), literal(&"\u{FFFF}"));
     }
 
     #[test]

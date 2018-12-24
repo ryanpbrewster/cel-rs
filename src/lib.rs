@@ -1,4 +1,5 @@
 #![feature(custom_attribute)]
+#![feature(try_from)]
 #![feature(get_type_id)]
 
 pub mod interpreter;

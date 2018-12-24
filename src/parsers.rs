@@ -125,6 +125,7 @@ fn extract_literal(pair: Pair<Rule>) -> Literal {
     let pair = pair.into_inner().next().unwrap();
     match pair.as_rule() {
         Rule::StringLiteral => Literal::String(extract_string(pair)),
+        Rule::FloatLiteral => Literal::F64(pair.as_str().parse().unwrap()),
         Rule::IntLiteral => Literal::I64(pair.as_str().parse().unwrap()),
         Rule::ListLiteral => extract_list(pair),
         Rule::BoolLiteral => Literal::Bool(pair.as_str().parse().unwrap()),
@@ -147,12 +148,14 @@ fn extract_string(pair: Pair<Rule>) -> String {
                     "n" => buf.push('\n'),
                     "\"" => buf.push('"'),
                     "x" | "u" => {
-                        buf.push(char::try_from(u32::from_str_radix(&s[1..], 16).unwrap()).unwrap());
-                    },
+                        buf.push(
+                            char::try_from(u32::from_str_radix(&s[1..], 16).unwrap()).unwrap(),
+                        );
+                    }
                     "0" | "1" | "2" | "3" => {
                         buf.push(u8::from_str_radix(s, 8).unwrap() as char);
                     }
-                    _ => unreachable!("unexpected string literal {} in {}", &s[..=0], s)
+                    _ => unreachable!("unexpected string literal {} in {}", &s[..=0], s),
                 }
             }
             _ => unreachable!(),
@@ -197,6 +200,13 @@ mod test {
         assert_valid("22 * (4 + 15)");
         assert_valid("22 * -4");
         assert_valid("!false");
+    }
+
+    #[test]
+    fn valid_floats() {
+        assert_valid("3.1415926");
+        assert_invalid(".1415926");
+        assert_invalid("3.");
     }
 
     #[test]

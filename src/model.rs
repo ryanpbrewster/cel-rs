@@ -17,6 +17,7 @@ pub enum Expression {
 #[derive(Debug, PartialEq, Clone)]
 pub enum Literal {
     I64(i64),
+    F64(f64),
     Bool(bool),
     String(String),
     Bytes(Vec<u8>),

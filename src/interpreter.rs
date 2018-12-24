@@ -95,6 +95,19 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                         }
                     }
                 },
+                Literal::F64(a) => match name {
+                    MethodName::Len => Err(String::from("illegal type for .len()")),
+                    MethodName::Pow => {
+                        if args.len() != 1 {
+                            return Err(String::from("too may arguments to .pow()"));
+                        }
+                        match evaluate(args[0].clone())? {
+                            Literal::F64(b) => Ok(Literal::F64(f64::powf(a, b))),
+                            Literal::I64(b) => Ok(Literal::F64(f64::powf(a, b as f64))),
+                            _ => Err(String::from("illegal type for .pow()")),
+                        }
+                    }
+                },
                 other => Err(format!("illegal method call {:?}.{:?}", other, name)),
             }
         }
@@ -144,6 +157,24 @@ mod test {
     fn int_pow() {
         let input = r#" 42.pow(2) "#;
         assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(42 * 42)),);
+    }
+
+    #[test]
+    fn float_powf() {
+        let input = r#" 3.1415926.pow(3.1415926) "#;
+        assert_eq!(
+            evaluate(parse(input).unwrap()),
+            Ok(Literal::F64(3.1415926f64.powf(3.1415926))),
+        );
+    }
+
+    #[test]
+    fn float_powi() {
+        let input = r#" 3.1415926.pow(2) "#;
+        assert_eq!(
+            evaluate(parse(input).unwrap()),
+            Ok(Literal::F64(3.1415926f64.powf(2.0))),
+        );
     }
 
     #[test]

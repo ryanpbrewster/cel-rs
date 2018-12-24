@@ -236,13 +236,17 @@ mod test {
 
     #[test]
     fn cel_string_octal_escapes() {
-        assert_valid(r#" "\0" "#);
-        assert_valid(r#" "\7" "#);
-        assert_valid(r#" "\07" "#);
-        assert_valid(r#" "\77" "#);
+        assert_valid(r#" "\000" "#);
+        assert_valid(r#" "\007" "#);
+        assert_valid(r#" "\255" "#);
         assert_valid(r#" "\377" "#);
+        assert_invalid(r#" "\0" "#);
+        assert_invalid(r#" "\7" "#);
+        assert_invalid(r#" "\07" "#);
+        assert_invalid(r#" "\77" "#);
         assert_invalid(r#" "\8" "#);
-        assert_valid(r#" "\400" "#); // parsed as [\4, 0, 0]
+        assert_invalid(r#" "\378" "#);
+        assert_invalid(r#" "\400" "#);
     }
 
     #[test]

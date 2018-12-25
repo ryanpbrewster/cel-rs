@@ -19,6 +19,7 @@ pub fn evaluate(expr: Expression) -> EvalResult {
             match (a, b) {
                 (Literal::I64(a), Literal::I64(b)) => Ok(Literal::Bool(a == b)),
                 (Literal::String(a), Literal::String(b)) => Ok(Literal::Bool(a == b)),
+                (Literal::Bytes(a), Literal::Bytes(b)) => Ok(Literal::Bool(a == b)),
                 _ => Err(String::from("invalid types")),
             }
         }
@@ -166,6 +167,12 @@ mod test {
     fn bytes_len() {
         let input = r#" b"\xFF".len() "#;
         assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(1)),);
+    }
+
+    #[test]
+    fn bytes_eq() {
+        let input = r#" b"¢" == b'\xC2\xA2' "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(true)));
     }
 
     #[test]

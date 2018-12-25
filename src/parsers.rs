@@ -272,6 +272,13 @@ mod test {
     }
 
     #[test]
+    fn valid_string_literals() {
+        assert_valid(r#" "asdf" "#);
+        assert_valid(r#" 'asdf' "#);
+        assert_valid(r#" '¢' "#);
+    }
+
+    #[test]
     fn cel_escaped_quote_string() {
         let input = r#""as\"df""#;
         assert_eq!(

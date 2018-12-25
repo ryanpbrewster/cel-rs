@@ -3,6 +3,11 @@ use std::str::FromStr;
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expression {
     Eq(Box<Expression>, Box<Expression>),
+    Neq(Box<Expression>, Box<Expression>),
+    Lt(Box<Expression>, Box<Expression>),
+    Lte(Box<Expression>, Box<Expression>),
+    Gte(Box<Expression>, Box<Expression>),
+    Gt(Box<Expression>, Box<Expression>),
     Add(Box<Expression>, Box<Expression>),
     Sub(Box<Expression>, Box<Expression>),
     Mul(Box<Expression>, Box<Expression>),

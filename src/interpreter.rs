@@ -23,6 +23,29 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                 _ => Err(String::from("invalid types")),
             }
         }
+        Expression::Neq(a, b) => evaluate(Expression::Not(Box::new(Expression::Eq(a, b)))),
+        Expression::Lt(a, b) => {
+            let a = evaluate(*a)?;
+            let b = evaluate(*b)?;
+            match (a, b) {
+                (Literal::I64(a), Literal::I64(b)) => Ok(Literal::Bool(a < b)),
+                (Literal::String(a), Literal::String(b)) => Ok(Literal::Bool(a < b)),
+                (Literal::Bytes(a), Literal::Bytes(b)) => Ok(Literal::Bool(a < b)),
+                _ => Err(String::from("invalid types")),
+            }
+        }
+        Expression::Lte(a, b) => {
+            let a = evaluate(*a)?;
+            let b = evaluate(*b)?;
+            match (a, b) {
+                (Literal::I64(a), Literal::I64(b)) => Ok(Literal::Bool(a <= b)),
+                (Literal::String(a), Literal::String(b)) => Ok(Literal::Bool(a <= b)),
+                (Literal::Bytes(a), Literal::Bytes(b)) => Ok(Literal::Bool(a <= b)),
+                _ => Err(String::from("invalid types")),
+            }
+        }
+        Expression::Gte(a, b) => evaluate(Expression::Not(Box::new(Expression::Lt(a, b)))),
+        Expression::Gt(a, b) => evaluate(Expression::Not(Box::new(Expression::Lte(a, b)))),
         Expression::Add(a, b) => {
             let a = evaluate(*a)?;
             let b = evaluate(*b)?;
@@ -130,6 +153,13 @@ mod test {
     use crate::model::Literal;
     use crate::parsers::parse;
 
+    fn assert_eval_true(input: &str) {
+        assert_eq!(
+            evaluate(parse(input).unwrap()).unwrap(),
+            Literal::Bool(true)
+        );
+    }
+
     #[test]
     fn smoke() {
         let input = r#" 1 + 2 + 3 + 4 + 5 "#;
@@ -173,6 +203,14 @@ mod test {
     fn bytes_eq() {
         let input = r#" b"¢" == b'\xC2\xA2' "#;
         assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(true)));
+    }
+
+    #[test]
+    fn bytes_cmp() {
+        assert_eval_true(r#" b"\x00" < b"\x01" "#);
+        assert_eval_true(r#" b"asdf" < b"pqrs" "#);
+        assert_eval_true(r#" b"" < b"asdf" "#);
+        assert_eval_true(r#" b"\xFE\xFF\xFF\xFF\xFF" < b"\xFF" "#);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 Expression = { SOI ~ Relation ~ EOI }
 Relation = { Addition ~ (RelOp ~ Addition)? }
-RelOp = { "==" }
+RelOp = { "==" | "!=" | "<" | "<=" | ">" | ">=" }
 Addition = { Multiplication ~ (AddOp ~ Addition)? }
 AddOp = { "+" | "-" }
 Multiplication = { Unary ~ (MulOp ~ Multiplication)? }

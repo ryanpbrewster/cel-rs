@@ -32,6 +32,11 @@ fn extract_relation(pair: Pair<Rule>) -> Expression {
             let b = extract_addition(pairs.next().unwrap());
             match op.as_str() {
                 "==" => Expression::Eq(Box::new(a), Box::new(b)),
+                "!=" => Expression::Neq(Box::new(a), Box::new(b)),
+                "<" => Expression::Lt(Box::new(a), Box::new(b)),
+                "<=" => Expression::Lte(Box::new(a), Box::new(b)),
+                ">=" => Expression::Gte(Box::new(a), Box::new(b)),
+                ">" => Expression::Gt(Box::new(a), Box::new(b)),
                 _ => unreachable!(),
             }
         }

@@ -83,6 +83,15 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                     }
                     MethodName::Pow => Err(String::from("illegal type for .pow()")),
                 },
+                Literal::Bytes(a) => match name {
+                    MethodName::Len => {
+                        if !args.is_empty() {
+                            return Err(String::from("too may arguments to .len()"));
+                        }
+                        Ok(Literal::I64(a.len() as i64))
+                    }
+                    MethodName::Pow => Err(String::from("illegal type for .pow()")),
+                },
                 Literal::I64(a) => match name {
                     MethodName::Len => Err(String::from("illegal type for .len()")),
                     MethodName::Pow => {
@@ -151,6 +160,12 @@ mod test {
     fn string_len() {
         let input = r#" "asdf".len() + "pqrs".len() "#;
         assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(8)),);
+    }
+
+    #[test]
+    fn bytes_len() {
+        let input = r#" b"\xFF".len() "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(1)),);
     }
 
     #[test]

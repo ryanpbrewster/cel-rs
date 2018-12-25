@@ -103,21 +103,21 @@ fn extract_member(pair: Pair<Rule>) -> Expression {
         _ => unreachable!(),
     };
     while let Some(id) = pairs.next() {
-        let name = extract_method_name(id);
+        let name = extract_method_name(&id);
         let args = extract_args(pairs.next().unwrap());
         a = Expression::Method(Box::new(a), name, args);
     }
     a
 }
 
-fn extract_method_name(pair: Pair<Rule>) -> MethodName {
+fn extract_method_name(pair: &Pair<Rule>) -> MethodName {
     assert_eq!(pair.as_rule(), Rule::Identifier);
     pair.as_str().parse::<MethodName>().unwrap()
 }
 
 fn extract_args(pair: Pair<Rule>) -> Vec<Expression> {
     assert_eq!(pair.as_rule(), Rule::Args);
-    pair.into_inner().map(|p| extract_relation(p)).collect()
+    pair.into_inner().map(extract_relation).collect()
 }
 
 fn extract_literal(pair: Pair<Rule>) -> Literal {
@@ -125,6 +125,7 @@ fn extract_literal(pair: Pair<Rule>) -> Literal {
     let pair = pair.into_inner().next().unwrap();
     match pair.as_rule() {
         Rule::StringLiteral => Literal::String(extract_string(pair)),
+        Rule::BytesLiteral => Literal::Bytes(extract_bytes(pair)),
         Rule::FloatLiteral => Literal::F64(pair.as_str().parse().unwrap()),
         Rule::IntLiteral => Literal::I64(pair.as_str().parse().unwrap()),
         Rule::ListLiteral => extract_list(pair),
@@ -137,31 +138,49 @@ fn extract_string(pair: Pair<Rule>) -> String {
     assert_eq!(pair.as_rule(), Rule::StringLiteral);
     let mut buf = String::new();
     for p in pair.into_inner() {
-        match p.as_rule() {
-            Rule::CharLiteral => {
-                buf.push_str(p.as_str());
-            }
-            Rule::Escape => {
-                let s = &p.as_str()[1..];
-                match &s[..1] {
-                    "t" => buf.push('\t'),
-                    "n" => buf.push('\n'),
-                    "\"" => buf.push('"'),
-                    "x" | "u" => {
-                        buf.push(
-                            char::try_from(u32::from_str_radix(&s[1..], 16).unwrap()).unwrap(),
-                        );
-                    }
-                    "0" | "1" | "2" | "3" => {
-                        buf.push(u8::from_str_radix(s, 8).unwrap() as char);
-                    }
-                    _ => unreachable!("unexpected string literal {} in {}", &s[..=0], s),
-                }
-            }
-            _ => unreachable!(),
-        }
+        match unescape_sequence(&p) {
+            Unescaped::Byte(b) => buf.push(b as char),
+            Unescaped::Unicode(ch) => buf.push(ch),
+        };
     }
     buf
+}
+
+fn extract_bytes(pair: Pair<Rule>) -> Vec<u8> {
+    assert_eq!(pair.as_rule(), Rule::BytesLiteral);
+    let mut buf = Vec::new();
+    for p in pair.into_inner() {
+        match unescape_sequence(&p) {
+            Unescaped::Byte(b) => buf.push(b),
+            Unescaped::Unicode(ch) => buf.extend_from_slice(ch.encode_utf8(&mut [0; 4]).as_bytes()),
+        };
+    }
+    buf
+}
+
+enum Unescaped {
+    Byte(u8),
+    Unicode(char),
+}
+fn unescape_sequence(pair: &Pair<Rule>) -> Unescaped {
+    match pair.as_rule() {
+        Rule::CharLiteral => Unescaped::Unicode(pair.as_str().chars().next().unwrap()),
+        Rule::Escape => {
+            let s = &pair.as_str()[1..];
+            match &s[..1] {
+                "t" => Unescaped::Byte(b'\t'),
+                "n" => Unescaped::Byte(b'\n'),
+                "\"" => Unescaped::Byte(b'"'),
+                "x" => Unescaped::Byte(u8::from_str_radix(&s[1..], 16).unwrap()),
+                "u" => Unescaped::Unicode(
+                    char::try_from(u32::from_str_radix(&s[1..], 16).unwrap()).unwrap(),
+                ),
+                "0" | "1" | "2" | "3" => Unescaped::Byte(u8::from_str_radix(s, 8).unwrap()),
+                _ => unreachable!("unexpected string literal {}", s),
+            }
+        }
+        _ => unreachable!(),
+    }
 }
 
 fn extract_list(pair: Pair<Rule>) -> Literal {
@@ -191,6 +210,9 @@ mod test {
     fn literal(x: &dyn Any) -> Expression {
         if let Some(&s) = x.downcast_ref::<&str>() {
             return Expression::Lit(Literal::String(String::from(s)));
+        }
+        if let Some(&b) = x.downcast_ref::<&[u8]>() {
+            return Expression::Lit(Literal::Bytes(b.to_vec()));
         }
         unimplemented!("literal of type {:?}", x.get_type_id())
     }
@@ -288,6 +310,11 @@ mod test {
         assert_eq!(parse(r#" "\u00FF" "#).unwrap(), literal(&"\u{00FF}"));
         assert_eq!(parse(r#" "\uFF00" "#).unwrap(), literal(&"\u{FF00}"));
         assert_eq!(parse(r#" "\uFFFF" "#).unwrap(), literal(&"\u{FFFF}"));
+    }
+
+    #[test]
+    fn valid_bytes() {
+        assert_eq!(parse(r#" b"asdf" "#).unwrap(), literal(&"asdf".as_bytes()));
     }
 
     #[test]

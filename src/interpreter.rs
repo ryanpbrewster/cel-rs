@@ -70,6 +70,7 @@ pub fn evaluate(expr: Expression) -> EvalResult {
             let b = evaluate(*b)?;
             match (a, b) {
                 (Literal::I64(a), Literal::I64(b)) => Ok(Literal::I64(a * b)),
+                (Literal::F64(a), Literal::F64(b)) => Ok(Literal::F64(a * b)),
                 _ => Err(String::from("invalid types")),
             }
         }
@@ -80,6 +81,13 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                 (Literal::I64(a), Literal::I64(b)) => {
                     if b != 0 {
                         Ok(Literal::I64(a / b))
+                    } else {
+                        Err(String::from("divide by zero"))
+                    }
+                }
+                (Literal::F64(a), Literal::F64(b)) => {
+                    if b != 0.0 {
+                        Ok(Literal::F64(a / b))
                     } else {
                         Err(String::from("divide by zero"))
                     }
@@ -185,6 +193,24 @@ mod test {
     fn string_addition() {
         let input = r#" "asdf" + "pqrs" + "tuvw" == "asdfpqrstuvw" "#;
         assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(true)),);
+    }
+
+    #[test]
+    fn addition_and_subtraction() {
+        let input = r#" 1 - 2 + 3 - 4 + 5 "#;
+        assert_eq!(
+            evaluate(parse(input).unwrap()),
+            Ok(Literal::I64(1 - 2 + 3 - 4 + 5)),
+        );
+    }
+
+    #[test]
+    fn multiplication_and_division() {
+        let input = r#" 1.0 / 2.0 * 3.0 / 4.0 * 5.0 "#;
+        assert_eq!(
+            evaluate(parse(input).unwrap()),
+            Ok(Literal::F64(1.0 / 2.0 * 3.0 / 4.0 * 5.0)),
+        );
     }
 
     #[test]

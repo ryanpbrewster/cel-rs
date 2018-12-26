@@ -46,38 +46,34 @@ fn extract_relation(pair: Pair<Rule>) -> Expression {
 fn extract_addition(pair: Pair<Rule>) -> Expression {
     assert_eq!(pair.as_rule(), Rule::Addition);
     let mut pairs = pair.into_inner();
-    let a = extract_multiplication(pairs.next().unwrap());
-    match pairs.next() {
-        None => a,
-        Some(op) => {
-            assert_eq!(op.as_rule(), Rule::AddOp);
-            let b = extract_addition(pairs.next().unwrap());
-            match op.as_str() {
-                "+" => Expression::Add(Box::new(a), Box::new(b)),
-                "-" => Expression::Sub(Box::new(a), Box::new(b)),
-                _ => unreachable!(),
-            }
+    let mut a = extract_multiplication(pairs.next().unwrap());
+    while let Some(op) = pairs.next() {
+        assert_eq!(op.as_rule(), Rule::AddOp);
+        let b = extract_multiplication(pairs.next().unwrap());
+        a = match op.as_str() {
+            "+" => Expression::Add(Box::new(a), Box::new(b)),
+            "-" => Expression::Sub(Box::new(a), Box::new(b)),
+            _ => unreachable!(),
         }
     }
+    a
 }
 
 fn extract_multiplication(pair: Pair<Rule>) -> Expression {
     assert_eq!(pair.as_rule(), Rule::Multiplication);
     let mut pairs = pair.into_inner();
-    let a = extract_unary(pairs.next().unwrap());
-    match pairs.next() {
-        None => a,
-        Some(op) => {
-            assert_eq!(op.as_rule(), Rule::MulOp);
-            let b = extract_multiplication(pairs.next().unwrap());
-            match op.as_str() {
-                "*" => Expression::Mul(Box::new(a), Box::new(b)),
-                "/" => Expression::Div(Box::new(a), Box::new(b)),
-                "%" => Expression::Mod(Box::new(a), Box::new(b)),
-                _ => unreachable!(),
-            }
+    let mut a = extract_unary(pairs.next().unwrap());
+    while let Some(op) = pairs.next() {
+        assert_eq!(op.as_rule(), Rule::MulOp);
+        let b = extract_unary(pairs.next().unwrap());
+        a = match op.as_str() {
+            "*" => Expression::Mul(Box::new(a), Box::new(b)),
+            "/" => Expression::Div(Box::new(a), Box::new(b)),
+            "%" => Expression::Mod(Box::new(a), Box::new(b)),
+            _ => unreachable!(),
         }
     }
+    a
 }
 
 fn extract_unary(pair: Pair<Rule>) -> Expression {

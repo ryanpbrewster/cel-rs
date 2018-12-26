@@ -1,9 +1,9 @@
 Expression = { SOI ~ Relation ~ EOI }
 Relation = { Addition ~ (RelOp ~ Addition)? }
 RelOp = { "==" | "!=" | "<" | "<=" | ">" | ">=" }
-Addition = { Multiplication ~ (AddOp ~ Addition)? }
+Addition = { Multiplication ~ (AddOp ~ Multiplication)* }
 AddOp = { "+" | "-" }
-Multiplication = { Unary ~ (MulOp ~ Multiplication)? }
+Multiplication = { Unary ~ (MulOp ~ Unary)* }
 MulOp = { "*" | "/" }
 Unary = { Member | UnaryOp ~ Unary }
 UnaryOp = { "-" | "!" }

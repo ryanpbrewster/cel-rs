@@ -7,3 +7,4 @@ pub mod model;
 pub mod parsers;
 
 pub use crate::parsers::parse;
+pub use crate::interpreter::evaluate;

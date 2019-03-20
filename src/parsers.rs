@@ -215,7 +215,7 @@ mod test {
         if let Some(&b) = x.downcast_ref::<&[u8]>() {
             return Expression::Lit(Literal::Bytes(b.to_vec()));
         }
-        unimplemented!("literal of type {:?}", x.get_type_id())
+        unimplemented!("literal of type {:?}", x.type_id())
     }
 
     #[test]

@@ -113,6 +113,7 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                         }
                         Ok(Literal::I64(a.chars().count() as i64))
                     }
+                    MethodName::Contains => Err(String::from("illegal type for .contains()")),
                     MethodName::Pow => Err(String::from("illegal type for .pow()")),
                 },
                 Literal::Bytes(a) => match name {
@@ -122,10 +123,12 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                         }
                         Ok(Literal::I64(a.len() as i64))
                     }
+                    MethodName::Contains => Err(String::from("illegal type for .contains()")),
                     MethodName::Pow => Err(String::from("illegal type for .pow()")),
                 },
                 Literal::I64(a) => match name {
                     MethodName::Len => Err(String::from("illegal type for .len()")),
+                    MethodName::Contains => Err(String::from("illegal type for .contains()")),
                     MethodName::Pow => {
                         if args.len() != 1 {
                             return Err(String::from("too may arguments to .pow()"));
@@ -138,6 +141,7 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                 },
                 Literal::F64(a) => match name {
                     MethodName::Len => Err(String::from("illegal type for .len()")),
+                    MethodName::Contains => Err(String::from("illegal type for .contains()")),
                     MethodName::Pow => {
                         if args.len() != 1 {
                             return Err(String::from("too may arguments to .pow()"));
@@ -146,6 +150,36 @@ pub fn evaluate(expr: Expression) -> EvalResult {
                             Literal::F64(b) => Ok(Literal::F64(f64::powf(a, b))),
                             Literal::I64(b) => Ok(Literal::F64(f64::powf(a, b as f64))),
                             _ => Err(String::from("illegal type for .pow()")),
+                        }
+                    }
+                },
+                Literal::List(xs) => match name {
+                    MethodName::Pow => Err(String::from("illegal type for .pow()")),
+                    MethodName::Contains => {
+                        if args.len() != 1 {
+                            return Err(String::from("too may arguments to .contains()"));
+                        }
+                        let needle = evaluate(args[0].clone())?;
+                        let mut err = None;
+                        for x in xs {
+                            match evaluate(x) {
+                                Ok(v) => {
+                                    if v == needle {
+                                        return Ok(Literal::Bool(true));
+                                    }
+                                }
+                                e @ Err(_) => {
+                                    err = Some(e);
+                                }
+                            }
+                        }
+                        err.unwrap_or(Ok(Literal::Bool(false)))
+                    }
+                    MethodName::Len => {
+                        if args.is_empty() {
+                            Ok(Literal::I64(xs.len() as i64))
+                        } else {
+                            Err(String::from("too may arguments to .len()"))
                         }
                     }
                 },
@@ -260,6 +294,48 @@ mod test {
         assert_eq!(
             evaluate(parse(input).unwrap()),
             Ok(Literal::F64(3.1415926f64.powf(2.0))),
+        );
+    }
+
+    #[test]
+    fn list_len() {
+        let input = r#" ["a", 3, false].len() "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::I64(3)),);
+    }
+
+    #[test]
+    fn list_contains_true() {
+        let input = r#" ["a", 3, false].contains(3) "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(true)),);
+    }
+
+    #[test]
+    fn list_contains_false() {
+        let input = r#" ["a", 3, false].contains(4) "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(false)),);
+    }
+
+    #[test]
+    fn list_contains_true_with_error() {
+        let input = r#" ["a", 3, 1 / 0].contains(3) "#;
+        assert_eq!(evaluate(parse(input).unwrap()), Ok(Literal::Bool(true)),);
+    }
+
+    #[test]
+    fn list_contains_false_with_error() {
+        let input = r#" ["a", 3, 1 / 0].contains(2) "#;
+        assert_eq!(
+            evaluate(parse(input).unwrap()),
+            Err(String::from("divide by zero")),
+        );
+    }
+
+    #[test]
+    fn list_contains_error() {
+        let input = r#" ["a", 3, false].contains(1 / 0) "#;
+        assert_eq!(
+            evaluate(parse(input).unwrap()),
+            Err(String::from("divide by zero")),
         );
     }
 

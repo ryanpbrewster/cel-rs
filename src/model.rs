@@ -34,6 +34,7 @@ pub enum Literal {
 pub enum MethodName {
     Len,
     Pow,
+    Contains,
 }
 
 impl FromStr for MethodName {
@@ -42,6 +43,7 @@ impl FromStr for MethodName {
         match s {
             "len" => Ok(MethodName::Len),
             "pow" => Ok(MethodName::Pow),
+            "contains" => Ok(MethodName::Contains),
             _ => Err(format!("unknown method '{}'", s)),
         }
     }
